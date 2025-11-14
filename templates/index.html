@@ -15,323 +15,317 @@
             --hover-color: #3498db;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-dark);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background-attachment: scroll;
             color: var(--text-light);
             line-height: 1.6;
         }
 
-        header {
-            background: rgba(17, 17, 17, 0.95);
-            padding: 1rem 5%;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
+        /* Animations */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+        .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
 
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+    /* Particle Background */
+    /* Bring the particle canvas forward and ensure page content sits above it. */
+    #particles-js { position: fixed; width: 100%; height: 100%; top: 0; left: 0; z-index: 0; pointer-events: none; }
+    /* Ensure main content stacks above the particles canvas */
+    main { position: relative; z-index: 1; }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+        /* Typing Animation */
+        .typing-text { display: inline-block; border-right: 3px solid var(--primary-color); animation: blink 0.75s infinite; }
+        @keyframes blink { 0%, 100% { border-color: transparent; } 50% { border-color: var(--primary-color); } }
 
-        .logo h1 {
-            font-size: 1.8rem;
-            color: var(--text-light);
-        }
+        /* Scroll Reveal Animation */
+        .scroll-reveal { opacity: 0; transform: translateY(50px); transition: opacity 0.4s ease-out, transform 0.4s ease-out; }
+        .scroll-reveal.active { opacity: 1; transform: translateY(0); }
 
-        .logo i {
-            color: var(--primary-color);
-            font-size: 2rem;
-        }
-
-        nav ul {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
-
-        nav a {
-            color: var(--text-light);
-            text-decoration: none;
-            font-size: 1.1rem;
-            transition: color 0.3s;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
-        }
-
-        nav a:hover {
-            color: var(--primary-color);
-            background: rgba(85, 165, 234, 0.1);
-        }
-
-        .hero {
-            padding: 8rem 5% 4rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 1400px;
-            margin: 0 auto;
-            min-height: 90vh;
-        }
-
-        .hero-content {
-            flex: 1;
-            padding-right: 3rem;
-        }
-
-        .hero-title {
-            font-size: 3.5rem;
-            line-height: 1.2;
-            margin-bottom: 1.5rem;
-        }
-
-        .highlight {
-            color: var(--primary-color);
-        }
-
-        .hero-description {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            color: #cccccc;
-        }
-
-        .hero-image {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-        }
-
-        .hero-image img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 20px;
-            margin: 2rem 0;
-        }
+        /* Header */
+        header { background: rgba(17, 17, 17, 0.95); padding: 1rem 5%; position: fixed; width: 100%; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); }
+        .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: var(--text-light); }
+        .logo h1 { font-size: 1.8rem; }
+        .logo i { color: var(--primary-color); font-size: 2rem; }
+        nav ul { display: flex; gap: 1rem; list-style: none; }
+        nav a { color: var(--text-light); text-decoration: none; font-size: 1rem; transition: color 0.3s, background 0.3s; padding: 0.5rem 1rem; border-radius: 5px; }
+        nav a:hover { color: var(--primary-color); background: rgba(85, 165, 234, 0.1); }
+        
+        /* Hero Section */
+        .hero { padding: 9rem 5% 4rem; display: flex; align-items: center; justify-content: space-between; max-width: 1400px; margin: 0 auto; min-height: 100vh; }
+        .hero-content { flex: 1; padding-right: 3rem; }
+        .hero-title { font-size: 3.5rem; line-height: 1.2; margin-bottom: 1.5rem; font-weight: 700; }
+        .highlight { color: var(--primary-color); }
+        .hero-description { font-size: 1.2rem; margin-bottom: 2.5rem; color: #cccccc; max-width: 600px; }
+        .hero-image { flex: 1; display: flex; justify-content: center; }
+        .hero-image img { max-width: 90%; height: auto; animation: float 4s ease-in-out infinite; filter: drop-shadow(0 20px 40px rgba(102, 126, 234, 0.25)); }
+        
         .get-started-btn {
-            display: inline-block;
-            padding: 1rem 2rem;
-            background: var(--primary-color);
-            color: white;
-            text-decoration: none;
-            border-radius: 25px;
-            font-size: 1.1rem;
-            transition: background 0.3s, transform 0.2s;
-            border: none;
-            cursor: pointer;
-            margin-top: 1rem;
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 1rem 2.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; text-decoration: none; border-radius: 50px;
+            font-size: 1.1rem; font-weight: 600; 
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .get-started-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: right 0.6s ease;
+        }
+        .get-started-btn:hover::before { right: 100%; }
+        .get-started-btn:hover { 
+            transform: translateY(-5px) scale(1.05); 
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.5);
         }
 
-        .services {
-            padding: 4rem 5%;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
+        /* Services Section */
+        .services { padding: 4rem 5%; max-width: 1400px; margin: 0 auto; text-align: center; }
+        .section-title { font-size: 2.8rem; margin-bottom: 1.5rem; font-weight: 700; }
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 3rem; text-align: left; }
+        
         .service-card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 2rem;
-            text-align: left;
-            transition: transform 0.3s, box-shadow 0.3s;
-            text-decoration: none;
-            color: var(--text-light);
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+            background: linear-gradient(135deg, rgba(42, 42, 42, 0.85) 0%, rgba(52, 52, 52, 0.8) 100%);
+            border: 1px solid rgba(85, 165, 234, 0.2);
+            border-radius: 20px; padding: 2rem;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            text-decoration: none; color: var(--text-light);
+            display: flex; flex-direction: column; gap: 1rem;
+            will-change: transform;
+            position: relative;
+            overflow: hidden;
         }
-
-        .service-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 30px rgba(85, 165, 234, 0.2);
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(85, 165, 234, 0.1), transparent);
+            transition: left 0.5s ease;
         }
-
-        .service-card i {
-            font-size: 2.5rem;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
+        .service-card:hover::before { left: 100%; }
+        .service-card:hover { 
+            transform: translateY(-12px) scale(1.02); 
+            box-shadow: 0 25px 60px rgba(85, 165, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(52, 52, 52, 0.95) 0%, rgba(42, 42, 42, 0.95) 100%);
         }
-
-        .service-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+        .service-card i { 
+            font-size: 2.5rem; 
+            color: var(--primary-color); 
+            margin-bottom: 1rem; 
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            will-change: transform;
         }
-
-        .service-card p {
-            color: #cccccc;
-            margin-bottom: 1rem;
-        }
-
+        .service-card:hover i { transform: scale(1.2) rotate(5deg); }
+        .service-card h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .service-card p { color: #cccccc; flex-grow: 1; }
+        
         .cta-button {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: var(--primary-color);
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s;
-            align-self: flex-start;
+            display: inline-block; padding: 0.75rem 1.5rem;
+            background: var(--primary-color); color: white;
+            text-decoration: none; border-radius: 25px; 
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            align-self: flex-start; font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.3s ease;
+        }
+        .cta-button:hover::before { left: 100%; }
+        .cta-button:hover { 
+            background: var(--hover-color); 
+            transform: scale(1.08); 
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
         }
 
-        .cta-button:hover {
-            background: var(--hover-color);
-        }
+        /* Footer */
+        footer { background: #111; padding: 2.5rem 5%; text-align: center; margin-top: 4rem; }
+        .footer-content { max-width: 1400px; margin: 0 auto; }
+        .social-links { display: flex; justify-content: center; gap: 1.5rem; margin-top: 1rem; }
+        .social-links a { color: var(--text-light); font-size: 1.5rem; transition: color 0.3s, transform 0.3s; }
+        .social-links a:hover { color: var(--primary-color); transform: translateY(-3px); }
 
-        footer {
-            background: rgba(17, 17, 17, 0.95);
-            padding: 2rem 5%;
-            text-align: center;
-        }
-
-        .footer-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .social-links {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .social-links a {
-            color: var(--text-light);
-            font-size: 1.5rem;
-            transition: color 0.3s;
-        }
-
-        .social-links a:hover {
-            color: var(--primary-color);
-        }
-
-        @media (max-width: 968px) {
-            .hero {
-                flex-direction: column;
-                text-align: center;
-                padding-top: 6rem;
-            }
-
-            .hero-content {
-                padding-right: 0;
-                margin-bottom: 2rem;
-            }
-
-            .hero-title {
-                font-size: 2.5rem;
-            }
-
-            .services-grid {
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            }
-
-            .footer-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
+        @media (max-width: 992px) {
+            .hero { flex-direction: column; text-align: center; padding-top: 8rem; }
+            .hero-content { padding-right: 0; margin-bottom: 2rem; }
+            .hero-title { font-size: 2.8rem; }
+            nav ul { display: none; }
         }
     </style>
 </head>
 <body>
     <header>
         <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-heartbeat"></i>
+            <a href="{{ url_for('index') }}" class="logo">
+                <i class="fas fa-heart-pulse"></i>
                 <h1>AnoN Healthcare</h1>
-            </div>
+            </a>
             <nav>
                 <ul>
-                    <li><a href="#"><i class="fas fa-home"></i> Home</a></li>
-                    <li><a href="#"><i class="fas fa-info-circle"></i> About</a></li>
-                    <li><a href="#"><i class="fas fa-envelope"></i> Contact</a></li>
-                    <li><a href="{{ url_for('login') }}"><i class="fas fa-user"></i> Login</a></li>
+                    <li><a href="{{ url_for('index') }}"><i class="fas fa-home me-1"></i> Home</a></li>
+                    <li><a href="{{ url_for('inperson') }}"><i class="fas fa-hospital me-1"></i> Appointments</a></li>
+                    <li><a href="{{ url_for('emergency_guide') }}"><i class="fas fa-first-aid me-1"></i> Emergency</a></li>
+                    <li><a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt me-1"></i> Login / Register</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <section class="hero">
-        <div class="hero-content">
-            <h1 class="hero-title">
-                Welcome to <span class="highlight">AnoN!</span><br>
-                Your Digital Healthcare Partner
-            </h1>
-            <p class="hero-description">
-                Experience healthcare reimagined with cutting-edge technology and compassionate care. 
-                Our comprehensive platform brings medical excellence right to your fingertips.
-            </p>
-            <a href="#" class="get-started-btn">Get Started Today</a>
-        </div>
-        <div class="hero-image">
-            <img src="../static/823_generated-removebg.png" alt="Healthcare illustration">
-        </div>
-    </section>
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
 
-    <section class="services">
-        <div class="services-grid">
-            <a href="{{ url_for('inperson') }}" class="service-card">
-                <i class="fas fa-hospital"></i>
-                <h3>In-Person Consultation</h3>
-                <p>Schedule face-to-face appointments with our experienced healthcare professionals at our state-of-the-art facilities.</p>
-                <span class="cta-button">Book Now</span>
-            </a>
-            <a href="#" class="service-card">
-                <i class="fas fa-video"></i>
-                <h3>Virtual Consultation</h3>
-                <p>Connect with doctors from the comfort of your home through secure video calls and online appointments.</p>
-                <span class="cta-button">Schedule Call</span>
-            </a>
-            <a href="{{ url_for('emergency_guide') }}"  class="service-card">
-                <i class="fa-sharp fa-thin fa-receipt"></i>
-                <h3>Medical Advice</h3>
-                <p>Upload your medical reports and receive expert opinions and personalized healthcare recommendations.</p>
-                <span class="cta-button">Get Advice</span>
-            </a>
-            <a href="{{ url_for('patient_login') }}" class="service-card">
-                <i class="fas fa-file-medical"></i>
-                <h3>Get Your Medical Reports</h3>
-                <p>Access your medical reports easily and securely through our user-friendly platform.</p>
-                <span class="cta-button">Learn More</span>
-            </a>
+    <main>
+        <section class="hero">
+            <div class="hero-content fade-in-up">
+                <h1 class="hero-title">
+                    Empowering Your Health Journey with <span class="highlight typing-text" data-text="An0n"></span>
+                </h1>
+                <p class="hero-description">
+                    A unified, AI-powered ecosystem bringing transparency, efficiency, and cutting-edge technology to healthcare management.
+                </p>
+                <a href="{{ url_for('inperson') }}" class="get-started-btn">
+                    Book an Appointment
+                </a>
+            </div>
+            <div class="hero-image">
+                <img src="{{ url_for('static', filename='823_generated-removebg.png') }}" alt="Healthcare illustration">
+            </div>
+        </section>
+
+        <section class="services" id="services">
+            <h2 class="section-title scroll-reveal">Our Core Services</h2>
             
-        </div>
-    </section>
+            <!-- ============================================= -->
+            <!-- === THIS IS THE UPDATED 4-CARD SECTION === -->
+            <!-- ============================================= -->
+            <div class="services-grid">
+                
+                <a href="{{ url_for('inperson') }}" class="service-card scroll-reveal">
+                    <i class="fas fa-calendar-check"></i>
+                    <h3>Book Appointment</h3>
+                    <p>Schedule face-to-face appointments with our experienced healthcare professionals at our state-of-the-art facilities.</p>
+                    <span class="cta-button">Book Now</span>
+                </a>
+
+                <a href="#" class="service-card scroll-reveal">
+                    <i class="fas fa-video"></i>
+                    <h3>Virtual Consultation</h3>
+                    <p>Connect with doctors from the comfort of your home through secure video calls. (Coming Soon)</p>
+                    <span class="cta-button">Learn More</span>
+                </a>
+                
+                <a href="{{ url_for('emergency_guide') }}" class="service-card scroll-reveal">
+                    <i class="fas fa-first-aid"></i>
+                    <h3>Emergency Guide</h3>
+                    <p>Get immediate, voice-guided first aid instructions and an AI chatbot for critical situations.</p>
+                    <span class="cta-button">Get Help Now</span>
+                </a>
+                
+                <a href="{{ url_for('patient_login') }}" class="service-card scroll-reveal">
+                    <i class="fas fa-file-medical"></i>
+                    <h3>Medical Reports</h3>
+                    <p>Access your secure patient dashboard to view, upload, and analyze your medical documents with AI.</p>
+                    <span class="cta-button">Access Portal</span>
+                </a>
+                
+            </div>
+            <!-- ============================================= -->
+            <!-- === END OF THE UPDATED SECTION === -->
+            <!-- ============================================= -->
+
+        </section>
+    </main>
 
     <footer>
         <div class="footer-content">
             <p>© 2025 AnoN Healthcare System. All Rights Reserved.</p>
             <div class="social-links">
-                <a href="#"><i class="fab fa-facebook"></i></a>
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="#"><i class="fab fa-instagram"></i></a>
-                <a href="#"><i class="fab fa-linkedin"></i></a>
+                <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
             </div>
         </div>
     </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Particle Background — tuned for higher visibility with low CPU cost
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 110, density: { enable: true, value_area: 900 } },
+                color: { value: '#55a5ea' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.65, random: false },
+                size: { value: 4, random: true },
+                line_linked: { enable: true, distance: 160, color: '#55a5ea', opacity: 0.22, width: 1 },
+                move: { enable: true, speed: 2.0, direction: 'none', random: true, straight: false, out_mode: 'out' }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                // keep interactions off to avoid lag on low-end devices; pointer-events is also disabled
+                events: { onhover: { enable: false, mode: 'repulse' }, onclick: { enable: false, mode: 'push' } },
+                modes: {
+                    repulse: { distance: 80, duration: 0.4 },
+                    push: { particles_nb: 4 }
+                }
+            },
+            retina_detect: true
+        });
+
+        // Scroll Reveal Animation
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+
+        // Typing animation for the highlighted site name (runs once on load)
+        (function() {
+            const el = document.querySelector('.typing-text');
+            if (!el) return;
+            const text = el.dataset && el.dataset.text ? el.dataset.text : (el.textContent || 'An0n');
+            // Clear initial content to avoid flash
+            el.textContent = '';
+            let idx = 0;
+            const speed = 120; // ms per character
+            const timer = setInterval(() => {
+                el.textContent += text.charAt(idx);
+                idx += 1;
+                if (idx >= text.length) {
+                    clearInterval(timer);
+                    // Optionally remove caret after typing:
+                    // el.style.borderRight = 'none';
+                }
+            }, speed);
+        })();
+    </script>
 </body>
 </html>

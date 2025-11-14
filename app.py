@@ -92,18 +92,17 @@ class Patient(db.Model):
     def set_password(self, password): self.password_hash = generate_password_hash(password)
     def check_password(self, password): return check_password_hash(self.password_hash, password)
 
+# This is the "db class" that stores the medical history
+
 class PatientProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     profile_name = db.Column(db.String(100), nullable=False)
-    # --- ADD THESE TWO NEW COLUMNS ---
     date_of_birth = db.Column(db.Date, nullable=True)
-    aadhar_no = db.Column(db.String(12), unique=True, nullable=True) # Aadhar is 12 digits
-    # --- END OF ADDED COLUMNS ---
-    age = db.Column(db.Integer) # You can keep or remove this
+    aadhar_no = db.Column(db.String(12), unique=True, nullable=True)
+    age = db.Column(db.Integer)
     gender = db.Column(db.String(10))
-    medical_history = db.Column(db.Text)
+    medical_history = db.Column(db.Text, nullable=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
-# --- Add this new model to your app.py ---
 
 # In app.py
 
@@ -547,42 +546,91 @@ def logout():
     flash('You have been logged out.')
     return redirect(url_for('hospital_selection'))
 
-@app.route('/patient_dashboard')
-def patient_dashboard():
-    if 'user_id' not in session or session.get('user_type') != 'patient':
-        return redirect(url_for('login_selection'))
+# --- REPLACE your entire old /patient_dashboard route with this ---
+# This is the backend function that writes data to the 'medical_history' field
 
+@app.route('/update_medical_history', methods=['POST'])
+def update_medical_history():
+    # 1. Security: Make sure a patient is logged in and has a profile selected.
+    if 'user_id' not in session or session.get('user_type') != 'patient':
+        return redirect(url_for('patient_login'))
     if 'profile_id' not in session:
         return redirect(url_for('select_profile'))
 
-    patient = Patient.query.get(session.get('user_id'))
-    active_profile = PatientProfile.query.get(session.get('profile_id'))
-    
-    # --- NEW LOGIC TO FETCH DOCUMENTS ---
-    three_days_ago = datetime.utcnow() - timedelta(days=3)
-    
-    # Check if the patient has any recent appointments
-    has_recent_appointment = Appointment.query.filter(
-        Appointment.patient_id == patient.id,
-        Appointment.appointment_date >= (datetime.utcnow().date() - timedelta(days=3))
-    ).first()
+    # 2. Find the correct PatientProfile object in the database.
+    profile = PatientProfile.query.get(session.get('profile_id'))
+    if not profile:
+        flash("Could not find your profile.", "danger")
+        return redirect(url_for('patient_dashboard'))
 
-    # Fetch documents uploaded within the last 3 days
-    recent_documents = PatientDocument.query.filter(
-        PatientDocument.patient_id == patient.id,
-        PatientDocument.upload_date >= three_days_ago
-    ).order_by(PatientDocument.upload_date.desc()).all()
-    
-    # --- END OF NEW LOGIC ---
+    # 3. Get the text from the <textarea name="medical_history"> in the form.
+    new_history_text = request.form.get('medical_history')
 
+    # 4. Update the 'medical_history' attribute of the Python object.
+    profile.medical_history = new_history_text
+    
+    # 5. Commit the change, which saves it permanently to the database.
+    db.session.commit()
+    
+    # 6. Send feedback to the user and reload the page.
+    flash("Your medical history has been updated successfully!", "success")
+    return redirect(url_for('patient_dashboard'))
+
+# This is the backend function that reads the 'medical_history' field and sends it to the page
+
+@app.route('/patient_dashboard')
+def patient_dashboard():
+    # ... (security and profile checks) ...
+    patient_id = session.get('user_id')
+    patient = Patient.query.get_or_404(patient_id)
+    active_profile = PatientProfile.query.get_or_404(session.get('profile_id'))
+    
+    # Logic to control the upload form
+    can_upload_documents = True 
+
+    # Logic to fetch all documents
+    all_documents = PatientDocument.query.filter_by(patient_id=patient_id).order_by(PatientDocument.upload_date.desc()).all()
+    
+    # Logic to fetch upcoming appointments
+    upcoming_appointments = Appointment.query.filter(
+        Appointment.patient_id == patient_id,
+        Appointment.appointment_date >= datetime.utcnow().date(),
+        Appointment.status == 'Booked'
+    ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
+    
+    # This is where the data is sent to the template
     return render_template(
         'patient_dashboard.html', 
         patient=patient, 
-        profile=active_profile,
-        has_recent_appointment=has_recent_appointment,
-        documents=recent_documents
+        profile=active_profile, # The 'active_profile' object contains the medical_history
+        has_recent_appointment=can_upload_documents,
+        documents=all_documents,
+        upcoming_appointments=upcoming_appointments,
+        now=datetime.utcnow() 
     )
+# --- ADD THIS NEW ROUTE for cancelling appointments ---
+@app.route('/cancel_appointment/<int:appt_id>', methods=['POST'])
+def cancel_appointment(appt_id):
+    # Security: Ensure a patient is logged in
+    if 'user_id' not in session or session.get('user_type') != 'patient':
+        return redirect(url_for('patient_login'))
+    
+    # Find the appointment and ensure it belongs to the logged-in patient
+    appointment_to_cancel = Appointment.query.filter_by(
+        id=appt_id, 
+        patient_id=session['user_id']
+    ).first()
 
+    if appointment_to_cancel:
+        # Instead of deleting, it's better to update the status.
+        # This keeps a record that the appointment existed.
+        appointment_to_cancel.status = 'Cancelled'
+        db.session.commit()
+        flash("Your appointment has been successfully cancelled.", "success")
+    else:
+        flash("Appointment not found or you do not have permission to cancel it.", "danger")
+
+    return redirect(url_for('patient_dashboard'))
 # --- ADD a new route to serve the uploaded files securely ---
 from flask import send_from_directory
 
@@ -789,7 +837,90 @@ def analyze_document(doc_id):
     except Exception as e:
         print(f"Analysis Error: {e}")
         return jsonify({"error": f"An error occurred during analysis: {e}"}), 500
+# --- ADD THIS NEW ROUTE for contextual Q&A to app.py ---
 
+@app.route('/ask_about_document', methods=['POST'])
+def ask_about_document():
+    # Security check: User must be a logged-in patient
+    if session.get('user_type') != 'patient':
+        return jsonify({"error": "Access Denied"}), 403
+
+    data = request.get_json()
+    doc_id = data.get('doc_id')
+    question = data.get('question')
+
+    if not all([doc_id, question]):
+        return jsonify({"error": "Missing document ID or question."}), 400
+
+    # Security check: Ensure the document belongs to this patient
+    doc = PatientDocument.query.filter_by(id=doc_id, patient_id=session['user_id']).first()
+    if not doc:
+        return jsonify({"error": "Document not found or access denied."}), 404
+
+    # --- Extract text from the document AGAIN to provide context to the AI ---
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], doc.filename)
+    extracted_text = ""
+    try:
+        if doc.filename.lower().endswith('.pdf'):
+            with fitz.open(filepath) as pdf_doc:
+                for page in pdf_doc:
+                    extracted_text += page.get_text()
+        elif doc.filename.lower().split('.')[-1] in ['png', 'jpg', 'jpeg']:
+            image = Image.open(filepath)
+            extracted_text = pytesseract.image_to_string(image)
+        else:
+            # This case should ideally not be reached if analysis worked before
+            return jsonify({"error": "Unsupported file type."}), 400
+            
+    except Exception as e:
+        print(f"Error re-extracting text: {e}")
+        return jsonify({"error": "Could not read the document to answer the question."}), 500
+
+    if not extracted_text.strip():
+        return jsonify({"response": "I couldn't find any text in the original document to reference."})
+
+    # --- Create the contextual prompt for Gemini ---
+    try:
+        if not gemini_model:
+            raise Exception("AI service is not configured.")
+
+        # --- THIS IS THE NEW, MORE INTELLIGENT PROMPT ---
+        prompt = f"""
+        You are a helpful and knowledgeable medical assistant. Your task is to answer a patient's question. You have two modes of answering:
+
+        1.  **If the patient's question can be answered directly from the text of their medical document**, you must base your answer on that text.
+        2.  **If the patient's question is a general medical question (like asking for a definition or general advice) that is NOT in the document**, you should use your general knowledge to provide a helpful, safe, and informative answer.
+
+        **CRITICAL RULES:**
+        -   You must NEVER provide a new diagnosis.
+        -   Your tone should be reassuring and easy to understand.
+        -   Always include a disclaimer if you are providing general information not found in the report. For example: "While this report doesn't go into detail, here is a general explanation..."
+        -   If asked for advice on how to "cure" a condition that the report says is not present (e.g., "No active disease"), you should first point out the good news from the report and then provide general wellness advice.
+
+        Here is the full text of the medical document for context:
+        --- DOCUMENT START ---
+        {extracted_text}
+        --- DOCUMENT END ---
+
+        Here is the patient's question:
+        "{question}"
+
+        Now, analyze the question and the document, and provide the best possible answer based on the rules above.
+        """
+        # --- END OF THE NEW PROMPT ---
+        
+        response = gemini_model.generate_content(prompt)
+        
+        if response and response.candidates:
+            answer = response.candidates[0].content.parts[0].text.strip()
+        else:
+            answer = "I was unable to process your question at this time."
+
+        return jsonify({"response": answer})
+
+    except Exception as e:
+        print(f"Contextual Chat Error: {e}")
+        return jsonify({"error": "An error occurred while getting the answer."}), 500
 # --- START: Routes for Emergency Guide Page ---
 
 # 1. Route to serve the main emergency guide page

@@ -1,0 +1,490 @@
+       background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+    .canvas-wrapper {
+        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #healthCanvas {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .control-panel {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .metric-input {
+        background: #F8FAFC;
+        border: 2px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .metric-input:focus-within {
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .metric-input label {
+        font-weight: 600;
+        color: #1E293B;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-input input[type="range"] {
+        width: 100%;
+        height: 8px;
+        border-radius: 5px;
+        background: #E2E8F0;
+        outline: none;
+        -webkit-appearance: none;
+    }
+
+    .metric-input input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    .metric-value {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .animation-type-btn {
+        background: white;
+        border: 2px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .animation-type-btn:hover {
+        border-color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .animation-type-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+    }
+
+    .animation-type-btn i {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .export-btn {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .health-status {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        margin-top: 1rem;
+    }
+
+    .health-status.excellent { background: #D1FAE5; color: #065F46; }
+    .health-status.good { background: #DBEAFE; color: #1E40AF; }
+    .health-status.fair { background: #FEF3C7; color: #92400E; }
+    .health-status.poor { background: #FEE2E2; color: #991B1B; }
+</style>
+
+<div class="animation-container fade-in">
+    <div class="text-center mb-4">
+        <h1 class="mb-2">
+            <i class="fas fa-heartbeat text-danger me-2"></i>
+            Health Animation Generator
+        </h1>
+        <p class="text-muted">Create personalized health visualizations based on your metrics</p>
+    </div>
+
+    <div class="row">
+        <!-- Canvas Preview -->
+        <div class="col-lg-8 mb-4">
+            <div class="preview-card">
+                <h4 class="mb-3">
+                    <i class="fas fa-tv me-2"></i>Live Preview
+                </h4>
+                <div class="canvas-wrapper">
+                    <canvas id="healthCanvas" width="700" height="400"></canvas>
+                </div>
+                <div class="text-center mt-3">
+                    <button class="export-btn" onclick="exportAnimation()">
+                        <i class="fas fa-download me-2"></i>Export as GIF
+                    </button>
+                    <button class="btn btn-outline-primary ms-2" onclick="shareAnimation()">
+                        <i class="fas fa-share-alt me-2"></i>Share
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="col-lg-4">
+            <div class="control-panel">
+                <h4 class="mb-3">
+                    <i class="fas fa-sliders-h me-2"></i>Health Metrics
+                </h4>
+
+                <!-- Heart Rate -->
+                <div class="metric-input">
+                    <label>
+                        <i class="fas fa-heartbeat text-danger me-2"></i>Heart Rate
+                        <span class="metric-value float-end" id="heartRateValue">75 bpm</span>
+                    </label>
+                    <input type="range" id="heartRate" min="40" max="200" value="75" oninput="updateMetrics()">
+                </div>
+
+                <!-- Blood Pressure -->
+                <div class="metric-input">
+                    <label>
+                        <i class="fas fa-tint text-primary me-2"></i>Blood Pressure
+                        <span class="metric-value float-end" id="bpValue">120/80</span>
+                    </label>
+                    <input type="range" id="bloodPressure" min="80" max="180" value="120" oninput="updateMetrics()">
+                </div>
+
+                <!-- Oxygen Level -->
+                <div class="metric-input">
+                    <label>
+                        <i class="fas fa-lungs text-info me-2"></i>Oxygen Level
+                        <span class="metric-value float-end" id="oxygenValue">98%</span>
+                    </label>
+                    <input type="range" id="oxygen" min="80" max="100" value="98" oninput="updateMetrics()">
+                </div>
+
+                <!-- Temperature -->
+                <div class="metric-input">
+                    <label>
+                        <i class="fas fa-thermometer-half text-warning me-2"></i>Temperature
+                        <span class="metric-value float-end" id="tempValue">98.6°F</span>
+                    </label>
+                    <input type="range" id="temperature" min="95" max="105" value="98.6" step="0.1" oninput="updateMetrics()">
+                </div>
+
+                <!-- Overall Health Status -->
+                <div class="text-center mt-4">
+                    <h5>Overall Health Status</h5>
+                    <div class="health-status excellent" id="healthStatus">Excellent</div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Animation Type -->
+                <h5 class="mb-3">Animation Style</h5>
+                <div class="d-flex flex-wrap justify-content-center">
+                    <div class="animation-type-btn active" onclick="setAnimationType('pulse')" id="btn-pulse">
+                        <i class="fas fa-heart"></i>
+                        <div>Pulse</div>
+                    </div>
+                    <div class="animation-type-btn" onclick="setAnimationType('wave')" id="btn-wave">
+                        <i class="fas fa-water"></i>
+                        <div>Wave</div>
+                    </div>
+                    <div class="animation-type-btn" onclick="setAnimationType('chart')" id="btn-chart">
+                        <i class="fas fa-chart-line"></i>
+                        <div>Chart</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('healthCanvas');
+    const ctx = canvas.getContext('2d');
+    let animationType = 'pulse';
+    let animationFrame = 0;
+
+    // Health metrics
+    let metrics = {
+        heartRate: 75,
+        bloodPressure: 120,
+        oxygen: 98,
+        temperature: 98.6
+    };
+
+    function updateMetrics() {
+        metrics.heartRate = parseInt(document.getElementById('heartRate').value);
+        metrics.bloodPressure = parseInt(document.getElementById('bloodPressure').value);
+        metrics.oxygen = parseInt(document.getElementById('oxygen').value);
+        metrics.temperature = parseFloat(document.getElementById('temperature').value);
+
+        // Update display values
+        document.getElementById('heartRateValue').textContent = metrics.heartRate + ' bpm';
+        document.getElementById('bpValue').textContent = metrics.bloodPressure + '/80';
+        document.getElementById('oxygenValue').textContent = metrics.oxygen + '%';
+        document.getElementById('tempValue').textContent = metrics.temperature + '°F';
+
+        // Calculate health status
+        updateHealthStatus();
+    }
+
+    function updateHealthStatus() {
+        let score = 0;
+        
+        // Heart rate scoring
+        if (metrics.heartRate >= 60 && metrics.heartRate <= 100) score += 25;
+        else if (metrics.heartRate >= 50 && metrics.heartRate <= 110) score += 15;
+        else score += 5;
+
+        // Blood pressure scoring
+        if (metrics.bloodPressure >= 110 && metrics.bloodPressure <= 130) score += 25;
+        else if (metrics.bloodPressure >= 100 && metrics.bloodPressure <= 140) score += 15;
+        else score += 5;
+
+        // Oxygen scoring
+        if (metrics.oxygen >= 95) score += 25;
+        else if (metrics.oxygen >= 90) score += 15;
+        else score += 5;
+
+        // Temperature scoring
+        if (metrics.temperature >= 97 && metrics.temperature <= 99) score += 25;
+        else if (metrics.temperature >= 96 && metrics.temperature <= 100) score += 15;
+        else score += 5;
+
+        const statusEl = document.getElementById('healthStatus');
+        if (score >= 80) {
+            statusEl.textContent = 'Excellent';
+            statusEl.className = 'health-status excellent';
+        } else if (score >= 60) {
+            statusEl.textContent = 'Good';
+            statusEl.className = 'health-status good';
+        } else if (score >= 40) {
+            statusEl.textContent = 'Fair';
+            statusEl.className = 'health-status fair';
+        } else {
+            statusEl.textContent = 'Needs Attention';
+            statusEl.className = 'health-status poor';
+        }
+    }
+
+    function setAnimationType(type) {
+        animationType = type;
+        document.querySelectorAll('.animation-type-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('btn-' + type).classList.add('active');
+    }
+
+    function drawPulseAnimation() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw heart
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const scale = 1 + Math.sin(animationFrame * 0.1) * 0.2;
+        
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.scale(scale, scale);
+        
+        // Heart shape
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(239, 68, 68, ${0.8 + Math.sin(animationFrame * 0.1) * 0.2})`;
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(-50, -50, -100, -20, -50, 30);
+        ctx.bezierCurveTo(-50, 60, 0, 80, 0, 80);
+        ctx.bezierCurveTo(0, 80, 50, 60, 50, 30);
+        ctx.bezierCurveTo(100, -20, 50, -50, 0, 0);
+        ctx.fill();
+        
+        ctx.restore();
+        
+        // Draw metrics
+        ctx.fillStyle = '#1E293B';
+        ctx.font = 'bold 24px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${metrics.heartRate} BPM`, centerX, centerY + 120);
+        
+        // Draw pulse line
+        ctx.strokeStyle = '#EF4444';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x += 5) {
+            const y = canvas.height - 50 + Math.sin((x + animationFrame * 5) * 0.05) * 20;
+            if (x === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    function drawWaveAnimation() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw multiple waves for different metrics
+        const waves = [
+            { color: '#EF4444', amplitude: 30, frequency: 0.02, offset: 0, label: 'Heart' },
+            { color: '#3B82F6', amplitude: 20, frequency: 0.03, offset: 50, label: 'BP' },
+            { color: '#10B981', amplitude: 25, frequency: 0.025, offset: 100, label: 'O2' }
+        ];
+        
+        waves.forEach((wave, index) => {
+            ctx.strokeStyle = wave.color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            for (let x = 0; x < canvas.width; x += 2) {
+                const y = canvas.height / 2 + wave.offset + 
+                          Math.sin((x + animationFrame * 3) * wave.frequency) * wave.amplitude;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Label
+            ctx.fillStyle = wave.color;
+            ctx.font = 'bold 14px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText(wave.label, 20, canvas.height / 2 + wave.offset);
+        });
+        
+        // Draw metrics text
+        ctx.fillStyle = '#1E293B';
+        ctx.font = 'bold 18px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(`HR: ${metrics.heartRate} | BP: ${metrics.bloodPressure} | O2: ${metrics.oxygen}%`, 
+                     canvas.width / 2, 50);
+    }
+
+    function drawChartAnimation() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw bar chart
+        const barWidth = 80;
+        const spacing = 120;
+        const startX = 100;
+        const maxHeight = 250;
+        
+        const data = [
+            { label: 'Heart Rate', value: metrics.heartRate, max: 200, color: '#EF4444' },
+            { label: 'BP', value: metrics.bloodPressure, max: 180, color: '#3B82F6' },
+            { label: 'Oxygen', value: metrics.oxygen, max: 100, color: '#10B981' },
+            { label: 'Temp', value: metrics.temperature, max: 105, color: '#F59E0B' }
+        ];
+        
+        data.forEach((item, index) => {
+            const x = startX + index * spacing;
+            const targetHeight = (item.value / item.max) * maxHeight;
+            const currentHeight = targetHeight * Math.min(1, animationFrame / 60);
+            const y = canvas.height - 80 - currentHeight;
+            
+            // Draw bar
+            const gradient = ctx.createLinearGradient(x, y, x, canvas.height - 80);
+            gradient.addColorStop(0, item.color);
+            gradient.addColorStop(1, item.color + '80');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, barWidth, currentHeight);
+            
+            // Draw value
+            ctx.fillStyle = '#1E293B';
+            ctx.font = 'bold 16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(item.value, x + barWidth / 2, y - 10);
+            
+            // Draw label
+            ctx.fillText(item.label, x + barWidth / 2, canvas.height - 50);
+        });
+    }
+
+    function animate() {
+        animationFrame++;
+        
+        switch(animationType) {
+            case 'pulse':
+                drawPulseAnimation();
+                break;
+            case 'wave':
+                drawWaveAnimation();
+                break;
+            case 'chart':
+                drawChartAnimation();
+                break;
+        }
+        
+        requestAnimationFrame(animate);
+    }
+
+    function exportAnimation() {
+        // Convert canvas to image
+        const link = document.createElement('a');
+        link.download = 'health-animation.png';
+        link.href = canvas.toDataURL();
+        link.click();
+        
+        // Show success message
+        alert('✅ Animation exported successfully!');
+    }
+
+    function shareAnimation() {
+        if (navigator.share) {
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'health-animation.png', { type: 'image/png' });
+                navigator.share({
+                    title: 'My Health Animation',
+                    text: 'Check out my health metrics!',
+                    files: [file]
+                });
+            });
+        } else {
+            alert('Share feature not supported on this browser. Use Export instead!');
+        }
+    }
+
+    // Initialize
+    updateMetrics();
+    animate();
+</script>
+{% endblock %}
