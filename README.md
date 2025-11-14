@@ -4,7 +4,7 @@
 
 > Submitted to the Grand Hackathon at Acharya Institute of Technology, Bangalore
 
-**Team An0n** | Pravesh Dubey • Nischal H Ameen • Nitin Chitrakar • Uttan Upendra Hegde
+**Team An0n** | Pravesh Dubey • Nischal H Ameen • Nitin Chitrakar • Uttam Upendra Hegde
 
 ---
 
