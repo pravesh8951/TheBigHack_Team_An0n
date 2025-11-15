@@ -11,7 +11,9 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import fitz 
 from geopy.geocoders import Nominatim
-
+import json
+import requests
+from openai import OpenAI
 # --- Imports from Medical Advice App ---
 import pytesseract
 from PIL import Image
@@ -28,7 +30,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 load_dotenv() # Load environment variables
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
+try:
+    openai_client = OpenAI() # This automatically reads the OPENAI_API_KEY from your .env
+    print("OpenAI client configured successfully for DALL-E image generation.")
+except Exception as e:
+    openai_client = None
+    print(f"WARNING: Could not configure OpenAI client. Image generation will fail. Error: {e}")
 
+EXERCISEDB_API_KEY = os.getenv('EXERCISEDB_API_KEY')
 # --- Upload Folder Configuration (from Medical Advice App) ---
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
@@ -1144,6 +1153,172 @@ def chat_response():
         return jsonify({"error": "Sorry, I could not process your request right now."}), 500
 
 # --- END: Routes for Emergency Guide Page ---
+# --- REPLACE your old get_exercise_plan function with this ---
+# Environment variable for ExerciseDB API Key
+# In app.py, REPLACE the get_exercise_names function
+
+def get_exercise_names(medical_conditions: str) -> list:
+    if not gemini_model:
+        raise Exception("AI service is not configured.")
+
+    available_exercises = [
+        "walking", "arm_circles", "wall_push_up", "seated_leg_raise", 
+        "bodyweight_squat", "glute_bridge", "jumping_jacks", "plank",
+        "cat_cow_stretch", "bird_dog"
+    ]
+    
+    prompt = f"""
+    You are an AI fitness advisor. Your task is to select 5 safe, low-impact exercises for a person with these medical conditions: "{medical_conditions}".
+    You MUST choose 5 exercises ONLY from the following list: {available_exercises}
+    Your response MUST be ONLY a JSON-formatted list of strings.
+    """
+    
+    response = gemini_model.generate_content(prompt)
+    
+    if response and response.candidates:
+        json_string = response.candidates[0].content.parts[0].text.strip().replace("`", "").replace("json", "")
+        try:
+            exercise_list = json.loads(json_string)
+            # Final check to ensure AI didn't invent an exercise
+            return [ex for ex in exercise_list if ex in available_exercises]
+        except json.JSONDecodeError:
+            raise Exception("AI did not return a valid JSON list.")
+    else:
+        raise Exception("Could not get a valid response from the AI model.")
+    
+# In app.py, REPLACE the /get_exercise_plan route
+
+@app.route('/get_exercise_plan', methods=['POST'])
+def generate_exercise_plan_route():
+    # Security checks remain the same
+    if session.get('user_type') != 'patient':
+        return jsonify({"error": "Access Denied"}), 403
+
+    profile = PatientProfile.query.filter_by(patient_id=session['user_id']).first()
+    if not profile or not profile.medical_history:
+        return jsonify({"error": "Please add medical history to generate a plan."})
+
+    # Check if the DALL-E client was configured
+    if not openai_client:
+        return jsonify({"error": "Image generation service is not configured."}), 500
+
+    try:
+        # --- Step 1: Get exercise names from Gemini AI (same as before) ---
+        print("[INFO] Getting exercise names from Gemini...")
+        exercise_names = get_exercise_names(profile.medical_history)
+        print(f"[INFO] Gemini suggested: {exercise_names}")
+
+        # --- Step 2: Generate an image for EACH exercise name using DALL-E ---
+        exercise_details_list = []
+        
+        # Define a consistent visual style for all images
+        image_style_prompt = (
+            "A clean, minimalist, vector line art illustration on a plain white background. "
+            "The image should clearly and simply demonstrate the exercise form. "
+            "Anatomically correct, simple black lines, no color, no shadows."
+        )
+
+        for name in exercise_names:
+            print(f"[INFO] Generating image for '{name}' via DALL-E...")
+            
+            # Create a detailed prompt for the image generation model
+            dalle_prompt = f"An illustration of a person performing the '{name.replace('_', ' ')}' exercise. {image_style_prompt}"
+
+            # Make the API call to DALL-E
+            response = openai_client.images.generate(
+                model="dall-e-3",
+                prompt=dalle_prompt,
+                size="1024x1024", # A standard square size
+                quality="standard",
+                n=1,
+            )
+            
+            # The API returns a temporary URL to the generated image
+            image_url = response.data[0].url
+            
+            exercise_details_list.append({
+                "name": name.replace("_", " ").title(),
+                "gifUrl": image_url, # This is now the LIVE URL from DALL-E
+                "equipment": "Body Weight",
+                "instructions": ["Follow the motion shown in the illustration.", "Perform 10-12 repetitions."]
+            })
+        
+        disclaimer = "**Disclaimer:** This is an AI-generated suggestion. Always consult your doctor before starting any new exercise program."
+
+        return jsonify({"plan": exercise_details_list, "disclaimer": disclaimer})
+
+    except Exception as e:
+        print(f"--- [CRITICAL ERROR] Live Image Generation Failed: {e} ---")
+        return jsonify({"error": "Could not generate a complete exercise plan at this time."}), 500
+@app.route('/debug/generate_exercise_assets')
+def generate_exercise_assets():
+    # Security: This route should only be accessible in debug mode
+    if not app.debug:
+        return "This feature is only available in debug mode.", 403
+
+    if not openai_client:
+        return "OpenAI client is not configured. Cannot generate images.", 500
+
+    # --- Configuration ---
+    # This list MUST match the names in your get_exercise_names() AI prompt
+    EXERCISE_LIST = [
+        "walking", "arm_circles", "wall_push_up", "seated_leg_raise", 
+        "bodyweight_squat", "glute_bridge", "jumping_jacks", "plank",
+        "cat_cow_stretch", "bird_dog"
+    ]
+    OUTPUT_FOLDER = os.path.join(app.static_folder, 'exercises') # Correctly points to 'static/exercises'
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+    IMAGE_STYLE_PROMPT = (
+        "A clean, minimalist, vector line art illustration on a plain white background. "
+        "The image should clearly and simply demonstrate the exercise form. "
+        "Anatomically correct, simple black lines, no color, no shadows. "
+        "Focus on the movement and proper posture."
+    )
+
+    results = []
+
+    for exercise_name in EXERCISE_LIST:
+        file_path = os.path.join(OUTPUT_FOLDER, f"{exercise_name}.png")
+        if os.path.exists(file_path):
+            message = f"✅ Image for '{exercise_name}' already exists. Skipping."
+            print(message)
+            results.append(message)
+            continue
+
+        prompt = f"An illustration of a person performing the '{exercise_name.replace('_', ' ')}' exercise. {IMAGE_STYLE_PROMPT}"
+        print(f"Generating image for: '{exercise_name}'...")
+        
+        try:
+            response = openai_client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            image_url = response.data[0].url
+            image_data = requests.get(image_url).content
+            
+            with open(file_path, 'wb') as handler:
+                handler.write(image_data)
+            
+            message = f"✅ Successfully generated and saved image to {file_path}"
+            print(message)
+            results.append(message)
+            
+        except Exception as e:
+            message = f"❌ Failed to generate image for '{exercise_name}'. Error: {e}"
+            print(message)
+            results.append(message)
+    
+    # Return a simple HTML page with the results
+    return f"""
+    <h1>Exercise Image Generation Complete</h1>
+    <ul>
+        {''.join(f'<li>{res}</li>' for res in results)}
+    </ul>
+    """
 
 # --- Main execution ---
 if __name__ == '__main__':

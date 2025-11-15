@@ -43,6 +43,20 @@
                     </form>
                 </div>
             </div>
+            <!-- === NEW: AI WELLNESS CORNER === -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-heartbeat me-2"></i>AI Wellness Corner</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="text-muted">Get a personalized, AI-generated exercise plan based on your saved medical history.</p>
+                    <button class="btn btn-success w-100" id="generatePlanBtn">
+                        <i class="fas fa-running me-2"></i>Generate My Exercise Plan
+                    </button>
+                </div>
+            </div>
+            <!-- === END OF AI WELLNESS CORNER === -->
+
         </div>
         
         <!-- Right Column: Appointments and Documents -->
@@ -182,6 +196,26 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="exercisePlanModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-running me-2"></i>Your Personalized Exercise Plan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="exercisePlanBody">
+        <div class="text-center" id="planSpinner" style="display: none;">
+            <div class="spinner-border text-success" role="status"></div>
+            <p class="mt-2">Generating your plan based on your medical history...</p>
+        </div>
+        <div id="planContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 
@@ -191,128 +225,186 @@
 <!-- ==================================================================== -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // --- Modal Setup ---
-    const analysisModalEl = document.getElementById('analysisModal');
-    const analysisModal = new bootstrap.Modal(analysisModalEl);
-    const analysisSpinner = document.getElementById('analysisSpinner');
-    const analysisChatContainer = document.getElementById('analysisChatContainer');
-    const initialAnalysisDiv = document.getElementById('initialAnalysis');
-    const chatHistoryDiv = document.getElementById('chatHistory');
-    const chatInputContainer = document.getElementById('chatInputContainer');
-    const chatQuestionInput = document.getElementById('chatQuestionInput');
-    const sendQuestionBtn = document.getElementById('sendQuestionBtn');
     
-    let currentDocId = null; // Store the ID of the document being analyzed
+    // ==========================================================
+    // --- PART 1: LOGIC FOR DOCUMENT ANALYSIS Q&A MODAL ---
+    // ==========================================================
+    const analysisModalEl = document.getElementById('analysisModal');
+    if (analysisModalEl) {
+        const analysisModal = new bootstrap.Modal(analysisModalEl);
+        const analysisSpinner = document.getElementById('analysisSpinner');
+        const analysisChatContainer = document.getElementById('analysisChatContainer');
+        const initialAnalysisDiv = document.getElementById('initialAnalysis');
+        const chatHistoryDiv = document.getElementById('chatHistory');
+        const chatInputContainer = document.getElementById('chatInputContainer');
+        const chatQuestionInput = document.getElementById('chatQuestionInput');
+        const sendQuestionBtn = document.getElementById('sendQuestionBtn');
+        
+        let currentDocId = null;
 
-    // --- Main "Analyze" Button Click Handler ---
-    document.querySelectorAll('.analyze-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            currentDocId = this.dataset.docId;
-            
-            // 1. Reset and show the modal with the main spinner
-            initialAnalysisDiv.innerHTML = '';
-            chatHistoryDiv.innerHTML = '';
-            analysisChatContainer.style.display = 'none';
-            chatInputContainer.style.display = 'none';
-            analysisSpinner.style.display = 'block';
-            analysisModal.show();
+        document.querySelectorAll('.analyze-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                currentDocId = this.dataset.docId;
+                
+                initialAnalysisDiv.innerHTML = '';
+                chatHistoryDiv.innerHTML = '';
+                analysisChatContainer.style.display = 'none';
+                chatInputContainer.style.display = 'none';
+                analysisSpinner.style.display = 'block';
+                analysisModal.show();
 
-            // 2. Fetch the initial analysis
-            fetch(`/analyze_document/${currentDocId}`, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                analysisSpinner.style.display = 'none';
-                analysisChatContainer.style.display = 'block';
-                chatInputContainer.style.display = 'flex'; // Use flex for proper alignment
+                fetch(`/analyze_document/${currentDocId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    analysisSpinner.style.display = 'none';
+                    analysisChatContainer.style.display = 'block';
+                    chatInputContainer.style.display = 'flex';
 
-                if (data.error) {
-                    initialAnalysisDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                    chatInputContainer.style.display = 'none'; // Hide input if initial analysis fails
-                } else {
-                    initialAnalysisDiv.innerHTML = marked.parse(data.analysis);
-                }
-            })
-            .catch(error => {
-                analysisSpinner.style.display = 'none';
-                initialAnalysisDiv.innerHTML = `<div class="alert alert-danger">A network error occurred. Please try again.</div>`;
-                console.error('Error:', error);
+                    if (data.error) {
+                        initialAnalysisDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                        chatInputContainer.style.display = 'none';
+                    } else {
+                        initialAnalysisDiv.innerHTML = marked.parse(data.analysis);
+                    }
+                })
+                .catch(error => {
+                    analysisSpinner.style.display = 'none';
+                    initialAnalysisDiv.innerHTML = `<div class="alert alert-danger">A network error occurred. Please try again.</div>`;
+                    console.error('Error:', error);
+                });
             });
         });
-    });
 
-    // --- Handler for sending a follow-up question ---
-    async function sendQuestion() {
-        const question = chatQuestionInput.value.trim();
-        if (!question || !currentDocId) return;
+        async function sendQuestion() {
+            const question = chatQuestionInput.value.trim();
+            if (!question || !currentDocId) return;
 
-        // Add user's question to chat history
-        addMessageToChat(question, 'user');
-        chatQuestionInput.value = '';
+            addMessageToChat(question, 'user');
+            chatQuestionInput.value = '';
 
-        // Add a temporary loading message for the bot's response
-        const botLoadingMsgId = `bot-loading-${Date.now()}`;
-        addMessageToChat('<div class="spinner-border spinner-border-sm"></div>', 'bot', botLoadingMsgId);
+            const botLoadingMsgId = `bot-loading-${Date.now()}`;
+            addMessageToChat('<div class="spinner-border spinner-border-sm"></div>', 'bot', botLoadingMsgId);
 
-        try {
-            const response = await fetch("{{ url_for('ask_about_document') }}", {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    doc_id: currentDocId,
-                    question: question
-                })
-            });
-            const data = await response.json();
+            try {
+                const response = await fetch("{{ url_for('ask_about_document') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doc_id: currentDocId, question: question })
+                });
+                const data = await response.json();
+                
+                const botLoadingEl = document.getElementById(botLoadingMsgId);
+                if (botLoadingEl) {
+                    if(data.error) {
+                        botLoadingEl.innerHTML = `<p class="text-danger">${data.error}</p>`;
+                    } else {
+                        botLoadingEl.innerHTML = marked.parse(data.response);
+                    }
+                }
+            } catch (error) {
+                const botLoadingEl = document.getElementById(botLoadingMsgId);
+                if (botLoadingEl) {
+                    botLoadingEl.innerHTML = `<p class="text-danger">Failed to get a response. Please check connection.</p>`;
+                }
+                console.error('Chat Error:', error);
+            }
+        }
+        
+        sendQuestionBtn.addEventListener('click', sendQuestion);
+        chatQuestionInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendQuestion();
+        });
+
+        function addMessageToChat(content, sender, elementId = null) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `chat-message ${sender}-message mb-2`;
+            if (elementId) messageEl.id = elementId;
+            messageEl.innerHTML = content;
+            chatHistoryDiv.appendChild(messageEl);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        }
+
+        const chatStyle = document.createElement('style');
+        chatStyle.innerHTML = `
+            .chat-message { padding: 0.75rem 1rem; border-radius: 15px; max-width: 85%; word-wrap: break-word; }
+            .user-message { align-self: flex-end; background-color: #0d6efd; color: white; border-bottom-right-radius: 3px; }
+            .bot-message { align-self: flex-start; background-color: #e9ecef; color: #212529; border-bottom-left-radius: 3px; }
+            #chatHistory { display: flex; flex-direction: column; }
+        `;
+        document.head.appendChild(chatStyle);
+    }
+
+
+    // ==========================================================
+    // --- PART 2: LOGIC FOR EXERCISE PLAN MODAL ---
+    // ==========================================================
+    const exercisePlanModalEl = document.getElementById('exercisePlanModal');
+if (exercisePlanModalEl) {
+    const exercisePlanModal = new bootstrap.Modal(exercisePlanModalEl);
+    const generatePlanBtn = document.getElementById('generatePlanBtn');
+    const planSpinner = document.getElementById('planSpinner');
+    const planContent = document.getElementById('planContent');
+
+    generatePlanBtn.addEventListener('click', function() {
+        planContent.innerHTML = '';
+        planSpinner.style.display = 'block';
+        exercisePlanModal.show();
+
+        fetch("{{ url_for('generate_exercise_plan_route') }}", { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            planSpinner.style.display = 'none';
             
-            // Find the loading message and replace it with the actual response
-            const botLoadingEl = document.getElementById(botLoadingMsgId);
-            if (botLoadingEl) {
-                if(data.error) {
-                    botLoadingEl.innerHTML = `<p class="text-danger">${data.error}</p>`;
+            let html = '';
+            
+            if (data.error) {
+                html = `<div class="alert alert-danger">${data.error}</div>`;
+            } else {
+                if (data.disclaimer) {
+                    html += `<div class="alert alert-warning">${marked.parse(data.disclaimer)}</div>`;
+                }
+                
+                if (data.plan && data.plan.length > 0) {
+                    data.plan.forEach(exercise => {
+                        // --- THIS IS THE CRITICAL FIX ---
+                        // Check if the gifUrl exists and is not an empty string.
+                        // If it's missing, use a placeholder image URL.
+                        const imageUrl = exercise.gifUrl ? exercise.gifUrl : "https://via.placeholder.com/300x300.png?text=No+Visual+Available";
+
+                        html += `
+                            <div class="card mb-3">
+                                <div class="row g-0">
+                                    <div class="col-md-4 d-flex justify-content-center align-items-center bg-light p-3">
+                                        <img src="${imageUrl}" class="img-fluid rounded" alt="${exercise.name} animation" loading="lazy">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${exercise.name}</h5>
+                                            <h6 class="card-subtitle mb-2 text-muted">Equipment: ${exercise.equipment}</h6>
+                                            <p class="card-text mb-1"><strong>Instructions:</strong></p>
+                                            <ol style="padding-left: 1.2rem; font-size: 0.9rem;">
+                                                ${(exercise.instructions || []).map(step => `<li>${step}</li>`).join('')}
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
                 } else {
-                    botLoadingEl.innerHTML = marked.parse(data.response);
+                    html += '<p class="text-center text-muted">No exercises could be found for your profile. Please try again.</p>';
                 }
             }
-
-        } catch (error) {
-            const botLoadingEl = document.getElementById(botLoadingMsgId);
-            if (botLoadingEl) {
-                botLoadingEl.innerHTML = `<p class="text-danger">Failed to get a response. Please check your connection.</p>`;
-            }
-            console.error('Chat Error:', error);
-        }
-    }
-    
-    // Event listeners for sending a question
-    sendQuestionBtn.addEventListener('click', sendQuestion);
-    chatQuestionInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendQuestion();
-        }
+            planContent.innerHTML = html;
+        })
+        .catch(error => {
+            planSpinner.style.display = 'none';
+            planContent.innerHTML = `<div class="alert alert-danger">A network error occurred. Please try again later.</div>`;
+            console.error('Error fetching exercise plan:', error);
+        });
     });
-
-    // Helper function to add messages to the chat UI
-    function addMessageToChat(content, sender, elementId = null) {
-        const messageEl = document.createElement('div');
-        messageEl.className = `chat-message ${sender}-message mb-2`;
-        if (elementId) {
-            messageEl.id = elementId;
-        }
-        messageEl.innerHTML = content;
-        chatHistoryDiv.appendChild(messageEl);
-        // Auto-scroll to the bottom
-        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
     }
 
-    // Add some simple styling for the chat messages
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .chat-message { padding: 0.75rem 1rem; border-radius: 15px; max-width: 85%; word-wrap: break-word; }
-        .user-message { align-self: flex-end; background-color: #0d6efd; color: white; border-bottom-right-radius: 3px; }
-        .bot-message { align-self: flex-start; background-color: #e9ecef; color: #212529; border-bottom-left-radius: 3px; }
-        #chatHistory { display: flex; flex-direction: column; }
-    `;
-    document.head.appendChild(style);
 });
 </script>
 {% endblock %}
